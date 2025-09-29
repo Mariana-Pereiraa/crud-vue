@@ -16,11 +16,22 @@
                     
                     <v-text-field v-model="formData.preco" 
                     :rules="[rules.required]"
-                    label="Preço" type="number" 
-                    prefix="R$">
-                    </v-text-field>
-                </v-form>
+                    label="Preço" 
+                    type="number" 
+                    prefix="R$"
+                    required
+                    />
 
+                    <v-select
+                        v-model="formData.categoriaId"
+                        :items="props.categorias"
+                        item-title="nome"
+                        item-value="id"
+                        :rules="[rules.required]"
+                        label="Categoria"
+                        required
+                    />
+                </v-form>
             </v-card-text>
 
             <v-card-actions>
@@ -34,25 +45,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { Produto } from '@/model/Produto';
+import type { Categoria } from '@/model/Categoria';
+import CategoriaService from '@/services/CategoriaService';
 
-//PROPOS (DADOS QUE O COMPONENTE RECEBE DO PAI)
 const props = defineProps<{
     produto: Produto | null;
     visible: boolean;
+    categorias: Categoria[];
 }>();
 
-//EMITS (EVENTOS QUE O COMPONENTE RECEBE DO PAI)
 const emits = defineEmits<{
     (e: 'salvar', produto: Produto): void;
     (e: 'fechar'): void;
+    // (e: 'erro-carregar-categorias'): void;
 }>();
 
+
+
 const form = ref<any>(null);
+const categorias = ref<Categoria[]>([]);
 const formData = ref<Produto>({
     nome: '',
-    preco: null
+    preco: null,
+    categoriaId: undefined as number | undefined,
 });
 
 const rules = {
@@ -62,19 +79,45 @@ const rules = {
 
 const formTitle = computed(() => (props.produto ? 'Editar Produto' : 'Novo Produto'));
 
-
-//para que o form de produto limpe os dados quando fechar
 watch(() => props.visible, (isVisible) => {
     if (isVisible) {
-        formData.value = props.produto ? { ...props.produto } : { nome: '', preco: null };
+        formData.value = {
+            id: props.produto?.id,
+            nome: props.produto?.nome || '',
+            preco: props.produto?.preco || null,
+            categoriaId: props.produto?.categoriaId
+        }; 
         form.value?.resetValidation();
     }
 });
 
+// onMounted(carregarCategorias);
+
+async function carregarCategorias(){
+    
+    try{
+        const response = await CategoriaService.listarTodos();
+        categorias.value = response.data;
+    } catch (e) {
+        console.error('Erro ao carregar categorias:', e);
+        // emits('erro-carregar-categorias'); 
+    }
+}
+
+
+
 async function salvar(){
     const {valid} = await form.value.validate();
     if(valid){
-        emits('salvar', formData.value);
+        const produtoPlayload = {
+            id: formData.value.id,
+            nome: formData.value.nome,
+            preco: formData.value.preco,
+            categoria: {
+                id: formData.value.categoriaId
+            }
+        };
+        emits('salvar', produtoPlayload);
     }
 }
 

@@ -1,28 +1,47 @@
 <template>
   <v-container>
-    <div class="d-flex justify-end mb-4">
-      <v-btn color="primary" @click="abrirDialogParaCriar">
-        <v-icon icon="mdi-plus" class="mr-1"></v-icon>
-        Novo Produto
-      </v-btn>
-    </div>
+    <v-card class="pa-4" elevation="3">
+      <div class="d-flex align-center mb-4">
+        <h1 class="text-h5">Gerenciamento de Produtos</h1>
+        <v-spacer></v-spacer>
+        <v-btn color="primary" elevation="2" @click="abrirDialogParaCriar">
+          <v-icon icon="mdi-plus" class="mr-1"></v-icon>
+          Novo Produto
+        </v-btn>
+      </div>
 
-    <ProdutoTable
-      :produtos="produtos"
-      :loading="loading"
-      @editar="abrirDialogParaEditar"
-      @deletar="deletarProduto"
-    />
+      <v-divider class="mb-4"></v-divider>
+
+      <v-data-table-server
+        v-model:items-per-page="itensPorPagina"
+        :headers="headers"
+        :items-length="totalProdutos"
+        :items="produtos"
+        :loading="loading"
+        loading-text="Carregando produtos..."
+        item-value="id"
+        @update:options="carregarProdutos"
+      >
+        <template v-slot:item.categoriaNome="{ item }">
+          {{ item.categoriaNome || '-' }}
+        </template>
+
+        <template v-slot:item.actions="{ item }">
+          <v-icon class="mr-2" color="blue" @click="abrirDialogParaEditar(item)">mdi-pencil</v-icon>
+          <v-icon color="red" @click="deletarProduto(item)">mdi-delete</v-icon>
+        </template>
+      </v-data-table-server>
+    </v-card>
 
     <ProdutoDialogForm
       :produto="produtoSelecionado"
       :visible="dialog"
+      :categorias="categorias"
       @salvar="salvarProduto"
       @fechar="fecharDialog"
     />
 
-    <v-snackbar
-      v-model="snackbar.show" :color="snackbar.color" :timeout="3000" >
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
   </v-container>
@@ -31,80 +50,107 @@
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
   import ProdutoDialogForm from '@/components/ProdutoDialogForm.vue';
-  import { Produto } from '@/model/Produto';
-  import ProdutoTable from '@/components/ProdutoTable.vue';
+  import CategoriaService from '@/services/CategoriaService';
   import ProdutoService from '@/services/ProdutoService';
+  import type { Produto } from '@/model/Produto';
+  import type { Categoria } from '@/model/Categoria';
 
   const produtos = ref<Produto[]>([]);
-  const loading = ref(false);
+  const loading = ref(true);
+  const totalProdutos = ref(0);
+  const itensPorPagina = ref(10);
+  const options = ref({ page: 1, itemsPerPage: 10, sortBy: [] as any[] });
+
   const dialog = ref(false);
   const produtoSelecionado = ref<Produto | null>(null);
-  const snackbar = ref({
-    show: false,
-    message: '',
-    color: ''
-  });
+  const categorias = ref<Categoria[]>([]);
+  const snackbar = ref({ show: false, message: '', color: '' });
 
-  onMounted(carregarProdutos);
+  const headers = [
+    { title: 'Nome', key: 'nome', sortable: true },
+    { title: 'Preço (R$)', key: 'preco', sortable: true },
+    { title: 'Categoria', key: 'categoria.nome', sortable: false },
+    { title: 'Ações', key: 'actions', sortable: false}
+  ];
 
-  async function carregarProdutos(){
+  onMounted(carregarCategorias);
+
+  async function carregarCategorias() {
+    try {
+      const response = await CategoriaService.listarTodos(); 
+      categorias.value = response.data;
+    } catch (error) {
+      mostrarSnackbar('Erro ao carregar categorias.', 'error');
+    }
+  }
+
+
+async function carregarProdutos(newOptions: { page: number, itemsPerPage: number, sortBy: any[] }) {
     loading.value = true;
+    options.value = newOptions;
     try{
-      const response = await ProdutoService.listar();
-      produtos.value = response.data;
-    } catch (error){
-      mostrarSnaackbar('Erro ao carregar produtos.', 'error');
-    } finally {
-      loading.value = false;
+        const response = await ProdutoService.listar(
+            newOptions.page,
+            newOptions.itemsPerPage,
+            newOptions.sortBy
+        );
+        produtos.value = response.data.content;
+        totalProdutos.value = response.data.totalElements;
+    } finally{
+        loading.value = false;
     }
-  }
+}
 
-  async function salvarProduto(produto: Produto){
-    try{
-      if(produto.id){
-        await ProdutoService.atualizar(produto.id, produto);
-        mostrarSnaackbar('Produto atualizado com sucesso.', 'success');
-      } else {
-        await ProdutoService.criar(produto);
-        mostrarSnaackbar('Produto criado com sucesso.', 'success');
-      }
-      fecharDialog();
-      await carregarProdutos();
-    } catch (error){
-      mostrarSnaackbar('Erro ao salvar produto.', 'error');
+async function salvarProduto(produtoFormData: any) {
+  try {
+    if (produtoFormData.id) {
+      await ProdutoService.atualizar(produtoFormData.id, produtoFormData);
+      mostrarSnackbar('Produto atualizado com sucesso!', 'success');
+    } else {
+      await ProdutoService.criar(produtoFormData);
+      mostrarSnackbar('Produto criado com sucesso!', 'success');
     }
+    fecharDialog();
+    await carregarProdutos(
+      { page: options.value.page, itemsPerPage: options.value.itemsPerPage, sortBy: options.value.sortBy }
+    );
+  } catch (error) {
+    mostrarSnackbar('Erro ao salvar produto.', 'error');
   }
+}
 
-  async function deletarProduto(produto: Produto){
-    if(confirm('Tem certeza que deseja excluir esse produto?')){
+  async function deletarProduto(produto: Produto) {
+    if (confirm('Tem certeza que deseja excluir este produto?')) {
       try {
-        if(produto.id){
+        if (produto.id) {
           await ProdutoService.deletar(produto.id);
-          mostrarSnaackbar('Produto deletado com sucesso.', 'success');
-          await carregarProdutos();
+          mostrarSnackbar('Produto deletado com sucesso!', 'success');
+          await carregarProdutos(
+            { page: options.value.page, itemsPerPage: options.value.itemsPerPage, sortBy: options.value.sortBy }
+          );
         }
       } catch (error) {
-        mostrarSnaackbar('Erro ao deletar produto.', 'error');
+        mostrarSnackbar('Erro ao deletar produto.', 'error');
       }
     }
   }
 
-  function abrirDialogParaCriar(){
+  function abrirDialogParaCriar() {
     produtoSelecionado.value = null;
     dialog.value = true;
   }
 
-  function abrirDialogParaEditar(produto: Produto){
+  function abrirDialogParaEditar(produto: Produto) {
     produtoSelecionado.value = produto;
     dialog.value = true;
   }
 
-  function fecharDialog(){
+  function fecharDialog() {
     dialog.value = false;
     produtoSelecionado.value = null;
   }
 
-  function mostrarSnaackbar(message: string, color: string){
+  function mostrarSnackbar(message: string, color: string) {
     snackbar.value.message = message;
     snackbar.value.color = color;
     snackbar.value.show = true;
