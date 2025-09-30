@@ -22,6 +22,11 @@
         item-value="id"
         @update:options="carregarProdutos"
       >
+        <template v-slot:item.preco="{ item }">
+          {{ formartCurrency(item.preco) }}
+
+        </template>
+
         <template v-slot:item.categoriaNome="{ item }">
           {{ item.categoriaNome || '-' }}
         </template>
@@ -48,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formartCurrency } from '@/utils/Formatters';
   import { ref, onMounted } from 'vue';
   import ProdutoDialogForm from '@/components/ProdutoDialogForm.vue';
   import CategoriaService from '@/services/CategoriaService';
@@ -59,12 +65,20 @@
   const loading = ref(true);
   const totalProdutos = ref(0);
   const itensPorPagina = ref(10);
-  const options = ref({ page: 1, itemsPerPage: 10, sortBy: [] as any[] });
+  const options = ref({ 
+    page: 1, 
+    itemsPerPage: 10, 
+    sortBy: [] as any[] 
+  });
 
   const dialog = ref(false);
   const produtoSelecionado = ref<Produto | null>(null);
   const categorias = ref<Categoria[]>([]);
-  const snackbar = ref({ show: false, message: '', color: '' });
+  const snackbar = ref({ 
+    show: false, 
+    message: '', 
+    color: '' 
+  });
 
   const headers = [
     { title: 'Nome', key: 'nome', sortable: true },

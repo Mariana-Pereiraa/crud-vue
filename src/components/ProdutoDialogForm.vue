@@ -59,7 +59,6 @@ const props = defineProps<{
 const emits = defineEmits<{
     (e: 'salvar', produto: Produto): void;
     (e: 'fechar'): void;
-    // (e: 'erro-carregar-categorias'): void;
 }>();
 
 
@@ -93,16 +92,14 @@ watch(() => props.visible, (isVisible) => {
 
 // onMounted(carregarCategorias);
 
-async function carregarCategorias(){
-    
-    try{
-        const response = await CategoriaService.listarTodos();
-        categorias.value = response.data;
-    } catch (e) {
-        console.error('Erro ao carregar categorias:', e);
-        // emits('erro-carregar-categorias'); 
-    }
-}
+// async function carregarCategorias(){
+//     try{
+//         const response = await CategoriaService.listarTodos();
+//         categorias.value = response.data;
+//     } catch (e) {
+//         console.error('Erro ao carregar categorias:', e);
+//     }
+// }
 
 
 
