@@ -1,13 +1,14 @@
 import axios from "axios";
 import type { Produto } from '@/model/Produto';
 import type { Page } from '@/model/Page';
+import apiClient from "./ApiClient";
 
-const apiClient = axios.create({
-    baseURL: "http://localhost:8080/api",
-    headers: {
-        "Content-Type": "application/json"
-    }
-});
+// const apiClient = axios.create({
+//     baseURL: "http://localhost:8080/api",
+//     headers: {
+//         "Content-Type": "application/json"
+//     }
+// });
 
 type SortOption = {
     key: string;
@@ -18,16 +19,13 @@ export default {
     listar(page: number, size: number, sortBy: SortOption[]): Promise<{ data: Page<Produto> }> {
         const sort = sortBy.map(s => `${s.key},${s.order}`).join(',');
 
-        const params: any = {
-            page: page - 1, 
-            size
-        };
-
-        if(sort){
-            params.sort = sort;
-        }
-
-        return apiClient.get("/produtos", {params});
+        return apiClient.get("/produtos", {
+            params: {
+                page: page - 1,
+                size,
+                sort: sort || null
+            }
+        })
             
     },
 

@@ -4,7 +4,7 @@
       <div class="d-flex align-center mb-4">
         <h1 class="text-h5">Gerenciamento de Produtos</h1>
         <v-spacer></v-spacer>
-        <v-btn color="primary" elevation="2" @click="abrirDialogParaCriar">
+        <v-btn v-if="isGestor" color="primary" elevation="2" @click="abrirDialogParaCriar">
           <v-icon icon="mdi-plus" class="mr-1"></v-icon>
           Novo Produto
         </v-btn>
@@ -22,6 +22,30 @@
         item-value="id"
         @update:options="carregarProdutos"
       >
+
+      <template v-slot:item.actions="{ item }">
+          <v-icon
+            v-if="isAuthenticated"
+            class="mr-2"
+            color="green"
+            @click="abrirDialogEstoque(item)"
+          >
+            mdi-packpage-variant
+          </v-icon>>
+
+          <div v-if="isGestor" class="d-inline-block">
+            <v-icon class="mr-2" color="blue" @click="abrirDialogParaEditar(item)">mdi-pencil</v-icon>
+            <v-icon color="red" @click="deletarProduto(item)">mdi-delete</v-icon>
+
+          </div>
+
+
+
+      </template>
+
+      
+
+
         <template v-slot:item.preco="{ item }">
           {{ formartCurrency(item.preco) }}
 
@@ -31,11 +55,14 @@
           {{ item.categoriaNome || '-' }}
         </template>
 
-        <template v-slot:item.actions="{ item }">
+        <!-- <template v-slot:item.actions="{ item }">
           <v-icon class="mr-2" color="blue" @click="abrirDialogParaEditar(item)">mdi-pencil</v-icon>
           <v-icon color="red" @click="deletarProduto(item)">mdi-delete</v-icon>
-        </template>
+        </template> -->
       </v-data-table-server>
+
+
+
     </v-card>
 
     <ProdutoDialogForm
@@ -54,12 +81,13 @@
 
 <script setup lang="ts">
   import { formartCurrency } from '@/utils/Formatters';
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, computed } from 'vue';
   import ProdutoDialogForm from '@/components/ProdutoDialogForm.vue';
   import CategoriaService from '@/services/CategoriaService';
   import ProdutoService from '@/services/ProdutoService';
   import type { Produto } from '@/model/Produto';
   import type { Categoria } from '@/model/Categoria';
+  import { useAuthStore } from '@/stores/Auth';
 
   const produtos = ref<Produto[]>([]);
   const loading = ref(true);
@@ -70,6 +98,11 @@
     itemsPerPage: 10, 
     sortBy: [] as any[] 
   });
+
+  const authStore = useAuthStore();
+  const isAuthenticated = computed(() => authStore.isAuthenticated);
+  const isGestor = computed(() => authStore.isGestor);
+
 
   const dialog = ref(false);
   const produtoSelecionado = ref<Produto | null>(null);

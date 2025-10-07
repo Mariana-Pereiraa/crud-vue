@@ -7,7 +7,7 @@
 
                 <v-spacer></v-spacer>
 
-                <v-btn color="primary" @click="abrirDialogoNovaCategoria">
+                <v-btn v-if="isGestor" color="primary" @click="abrirDialogoNovaCategoria">
                     <v-icon start>mdi-plus</v-icon>
                     Nova Categoria
                 </v-btn>
@@ -26,8 +26,10 @@
                 @update:options="carregarCategorias"
             >
                 <template v-slot:item.actions="{item}">
-                    <v-icon class="mr-2" color="blue" @click="abrirDialogoParaEdicao(item)">mdi-pencil</v-icon>
-                    <v-icon color="red" @click="excluirCategoria(item)">mdi-delete</v-icon>
+                    <div v-if="isGestor">
+                        <v-icon class="mr-2" color="blue" @click="abrirDialogoParaEdicao(item)">mdi-pencil</v-icon>
+                        <v-icon color="red" @click="excluirCategoria(item)">mdi-delete</v-icon>
+                    </div>
                 </template>
             </v-data-table-server>
         </v-card>
@@ -65,9 +67,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref,computed } from 'vue';
 import type { Categoria } from '@/model/Categoria';
 import CategoriaService from '@/services/CategoriaService';
+import { useAuthStore } from '@/stores/Auth';
+
 
 const categorias = ref<Categoria[]>([]);
 const totalCategorias = ref(0);
@@ -92,6 +96,9 @@ const snackbar = ref({
     text: '',
     color: 'success'
 });
+
+const authStore = useAuthStore();
+const isGestor = computed(() => authStore.isGestor);
 
 async function carregarCategorias(newOptions: { page: number; itemsPerPage: number; sortBy: any[] }) {
     loading.value = true;
@@ -127,8 +134,8 @@ function fecharDialogo(){
 
 async function salvarCategoria(){
     try{
-        if(categoriaEditando.value){
-            await CategoriaService.atualizar(categoria.value);
+        if(categoria.value.id){
+            await CategoriaService.atualizar(categoria.value.id, categoria.value);
             mostrarSnackbar('Categoria atualizada com sucesso.', 'success');
         } else {
             await CategoriaService.criar(categoria.value);
