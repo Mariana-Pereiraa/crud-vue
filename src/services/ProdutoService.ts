@@ -3,12 +3,6 @@ import type { Produto } from '@/model/Produto';
 import type { Page } from '@/model/Page';
 import apiClient from "./ApiClient";
 
-// const apiClient = axios.create({
-//     baseURL: "http://localhost:8080/api",
-//     headers: {
-//         "Content-Type": "application/json"
-//     }
-// });
 
 type SortOption = {
     key: string;
@@ -39,5 +33,11 @@ export default {
 
     deletar(id: number): Promise<any> {
         return apiClient.delete(`/produtos/${id}`);
-    }
+    },
+
+    atualizarQuantidade(id: number, quantidade: number): Promise<{ data: Produto }> {
+        return apiClient.patch(`/produtos/${id}/estoque`, { quantidade });
+      }
+      
+
 };

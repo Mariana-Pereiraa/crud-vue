@@ -22,6 +22,15 @@
                     required
                     />
 
+                    <v-text-field
+                    v-if="isGestorOuFuncionario"
+                    v-model="formData.quantidade"
+                    :rules="[rules.required]"
+                    label="Quantidade em estoque"
+                    type="number"
+                    min="0"
+                    />
+
                     <v-select
                         v-model="formData.categoriaId"
                         :items="props.categorias"
@@ -50,6 +59,13 @@ import { Produto } from '@/model/Produto';
 import type { Categoria } from '@/model/Categoria';
 import CategoriaService from '@/services/CategoriaService';
 
+import { useAuthStore } from '@/stores/Auth';
+
+const authStore = useAuthStore();
+const isGestorOuFuncionario = computed(() => 
+    ['GESTOR', 'FUNCIONARIO'].includes(authStore.user?.papel)
+);
+
 const props = defineProps<{
     produto: Produto | null;
     visible: boolean;
@@ -68,6 +84,7 @@ const categorias = ref<Categoria[]>([]);
 const formData = ref<Produto>({
     nome: '',
     preco: null,
+    quantidade:null,
     categoriaId: undefined as number | undefined,
 });
 
@@ -84,24 +101,12 @@ watch(() => props.visible, (isVisible) => {
             id: props.produto?.id,
             nome: props.produto?.nome || '',
             preco: props.produto?.preco || null,
+            quantidade: props.produto?.quantidade || 0,
             categoriaId: props.produto?.categoriaId
         }; 
         form.value?.resetValidation();
     }
 });
-
-// onMounted(carregarCategorias);
-
-// async function carregarCategorias(){
-//     try{
-//         const response = await CategoriaService.listarTodos();
-//         categorias.value = response.data;
-//     } catch (e) {
-//         console.error('Erro ao carregar categorias:', e);
-//     }
-// }
-
-
 
 async function salvar(){
     const {valid} = await form.value.validate();
@@ -110,6 +115,7 @@ async function salvar(){
             id: formData.value.id,
             nome: formData.value.nome,
             preco: formData.value.preco,
+            quantidade: formData.value.quantidade,
             categoria: {
                 id: formData.value.categoriaId
             }

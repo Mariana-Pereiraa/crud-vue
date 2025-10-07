@@ -40,6 +40,7 @@ defineEmits<{
 const headers = [
     { title: 'Nome', key: 'nome', sortable: true },
     { title: 'Preço (R$)', key: 'preco', sortable: true },
+    {title: 'Quantidade', key: 'quantidade', sortable: true },
     { title: 'Categoria', key: 'categoriaNome', sortable: false }, 
     { title: 'Ações', key: 'actions', sortable: false, align: 'end' }
 ] as const;

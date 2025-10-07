@@ -23,23 +23,33 @@
         @update:options="carregarProdutos"
       >
 
-      <template v-slot:item.actions="{ item }">
-          <v-icon
-            v-if="isAuthenticated"
-            class="mr-2"
-            color="green"
-            @click="abrirDialogEstoque(item)"
-          >
-            mdi-packpage-variant
-          </v-icon>>
+      <template v-slot:item.quantidade="{ item }">
+        <div v-if="editandoQuantidadeId === item.id">
+          <v-text-field
+            v-model="novaQuantidade"
+            type="number"
+            dense
+            hide-details
+            style="width: 80px"
+            @blur="salvarQuantidade(item)"
+            @keyup.enter="salvarQuantidade(item)"
+          />
+        </div>
+        <div
+          v-else
+          @click="permitirEdicaoQuantidade(item)"
+          style="cursor: pointer; color: #1976d2;"
+        >
+          {{ item.quantidade }}
+        </div>
+      </template>
 
+      <template v-slot:item.actions="{ item }">
           <div v-if="isGestor" class="d-inline-block">
             <v-icon class="mr-2" color="blue" @click="abrirDialogParaEditar(item)">mdi-pencil</v-icon>
             <v-icon color="red" @click="deletarProduto(item)">mdi-delete</v-icon>
 
           </div>
-
-
 
       </template>
 
@@ -88,6 +98,37 @@
   import type { Produto } from '@/model/Produto';
   import type { Categoria } from '@/model/Categoria';
   import { useAuthStore } from '@/stores/Auth';
+import axios from 'axios';
+
+
+  const editandoQuantidadeId = ref<number | null>(null);
+  const novaQuantidade = ref<number | null>(null);
+
+  function permitirEdicaoQuantidade(item: Produto) {
+    const auth = useAuthStore();
+    if(!auth.isAuthenticated) {
+      return;
+    } 
+    editandoQuantidadeId.value = item.id!;
+    novaQuantidade.value = item.quantidade ?? 0;
+  }
+
+  
+  async function salvarQuantidade(item: Produto) {
+    if(novaQuantidade.value == null){
+      return;
+    }
+    try {
+      const response = await ProdutoService.atualizarQuantidade(item.id!, novaQuantidade.value);
+      item.quantidade = response.data.quantidade;
+      mostrarSnackbar('Quantidade atualizada com sucesso!', 'success');
+  } catch (error) {
+      mostrarSnackbar('Erro ao atualizar quantidade.', 'error');
+  } finally {
+      editandoQuantidadeId.value = null;
+      novaQuantidade.value = null;
+  }
+  }
 
   const produtos = ref<Produto[]>([]);
   const loading = ref(true);
@@ -116,6 +157,7 @@
   const headers = [
     { title: 'Nome', key: 'nome', sortable: true },
     { title: 'Preço (R$)', key: 'preco', sortable: true },
+    {title: 'Quantidade', key: 'quantidade', sortable: true },
     { title: 'Categoria', key: 'categoria.nome', sortable: false },
     { title: 'Ações', key: 'actions', sortable: false}
   ];
