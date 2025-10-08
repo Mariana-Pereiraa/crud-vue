@@ -14,7 +14,7 @@
             item-value="id"
             @update:options="$emit('update:options', $event)"
         >
-            <template v-slot:item.actions="{ item }">
+            <template v-if="isGestor" v-slot:item.actions="{ item }">
                 <v-icon class="mr-2" color="blue" @click="$emit('editar', item)">mdi-pencil</v-icon>
                 <v-icon color="red" @click="$emit('deletar', item)">mdi-delete</v-icon>
             </template>
@@ -24,6 +24,13 @@
 
 <script setup lang="ts">
 import type { Produto } from '@/model/Produto'; 
+import { useAuthStore } from '@/stores/Auth';
+
+const authStore = useAuthStore();
+const isGestor = authStore.isGestor;
+
+
+
 
 defineProps<{
     produtos: Produto[];

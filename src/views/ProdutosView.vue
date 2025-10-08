@@ -65,10 +65,6 @@
           {{ item.categoriaNome || '-' }}
         </template>
 
-        <!-- <template v-slot:item.actions="{ item }">
-          <v-icon class="mr-2" color="blue" @click="abrirDialogParaEditar(item)">mdi-pencil</v-icon>
-          <v-icon color="red" @click="deletarProduto(item)">mdi-delete</v-icon>
-        </template> -->
       </v-data-table-server>
 
 
@@ -154,13 +150,19 @@ import axios from 'axios';
     color: '' 
   });
 
-  const headers = [
+  const headersBase = [
     { title: 'Nome', key: 'nome', sortable: true },
     { title: 'Preço (R$)', key: 'preco', sortable: true },
     {title: 'Quantidade', key: 'quantidade', sortable: true },
     { title: 'Categoria', key: 'categoria.nome', sortable: false },
     { title: 'Ações', key: 'actions', sortable: false}
   ];
+
+  const headers = computed(() => {
+  return isGestor.value
+    ? headersBase
+    : headersBase.filter(h => h.key !== 'actions');
+});
 
   onMounted(carregarCategorias);
 

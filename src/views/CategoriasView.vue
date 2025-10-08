@@ -146,7 +146,7 @@ async function salvarCategoria(){
             { page: options.value.page, itemsPerPage: options.value.itemsPerPage, sortBy: options.value.sortBy }
         );
     } catch (e: any){
-        mostrarSnackbar('Erro ao salvar categoria', 'error');
+        mostrarSnackbar('Erro ao salvar categoria! Já existe uma catgeoria com esse nome', 'error');
     }
 }
 
@@ -159,7 +159,7 @@ async function excluirCategoria(cat: Categoria){
                 { page: options.value.page, itemsPerPage: options.value.itemsPerPage, sortBy: options.value.sortBy }
             );
         } catch (e: any){
-            mostrarSnackbar('Erro ao deletar categoria', 'error');
+            mostrarSnackbar('Erro ao deletar categoria! Possui produtos atribuídos', 'error');
         }
     }
 }
